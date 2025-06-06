@@ -3,8 +3,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tadea v17 - Clean Version</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Tadea v17.2 - Recalculate on Load</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+function recalculateTrades() {
+  let equity = startBal;
+  trades.forEach(t => {
+    const R = t.result === "win" ? t.rr : -1;
+    const riskAmt = equity * (t.risk / 100);
+    t.pnl = parseFloat((R * riskAmt).toFixed(2));
+    equity += t.pnl;
+    t.equity = parseFloat(equity.toFixed(2));
+  });
+}
+
+function loadFile(event) {
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      trades = JSON.parse(reader.result);
+      recalculateTrades();
+      updateStats();
+      renderTable();
+    } catch (e) {
+      alert("Invalid JSON file.");
+    }
+  };
+  reader.readAsText(event.target.files[0]);
+}
+
+</script>
   <style id="theme-style"></style>
 </head>
 <body>
@@ -212,6 +239,33 @@ button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px;background
 button:hover{background:#005fa3;color:#fff}`;
 
     toggleTheme();
-  </script>
+  
+function recalculateTrades() {
+  let equity = startBal;
+  trades.forEach(t => {
+    const R = t.result === "win" ? t.rr : -1;
+    const riskAmt = equity * (t.risk / 100);
+    t.pnl = parseFloat((R * riskAmt).toFixed(2));
+    equity += t.pnl;
+    t.equity = parseFloat(equity.toFixed(2));
+  });
+}
+
+function loadFile(event) {
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      trades = JSON.parse(reader.result);
+      recalculateTrades();
+      updateStats();
+      renderTable();
+    } catch (e) {
+      alert("Invalid JSON file.");
+    }
+  };
+  reader.readAsText(event.target.files[0]);
+}
+
+</script>
 </body>
 </html>
