@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tadea v17.3 - Summary Panel</title>
+  <title>Tadea v17.3 -  Panel (Safe)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js">
 function recalculateTrades() {
   let equity = startBal;
@@ -31,6 +31,72 @@ function loadFile(event) {
   reader.readAsText(event.target.files[0]);
 }
 
+
+window.addEventListener("load", () => {
+  const origUpdateStats = updateStats;
+  updateStats = function() {
+    origUpdateStats();
+
+    const winrate = document.querySelector("#stats").innerText.match(/Winrate.*?(\d+\.?\d*)%/);
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const eq = equity.length ? equity[equity.length - 1] : startBal;
+    const pnl = eq - startBal;
+    const pnlPct = ((pnl / startBal) * 100).toFixed(2);
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate ? winrate[1] + "%" : "0%";
+    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+
+
+window.addEventListener("load", () => {
+  const origUpdateStats = updateStats;
+  updateStats = function() {
+    origUpdateStats();
+
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
+
+    const eq = equity.length ? equity[equity.length - 1] : startBal;
+    const pnl = eq - startBal;
+    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate + "%";
+    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+
+
+window.addEventListener("load", () => {
+  const origUpdateStats = updateStats;
+  updateStats = function() {
+    origUpdateStats();
+
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
+
+    let eq = startBal;
+    equity.forEach(e => { eq = e; });
+    const pnl = eq - startBal;
+    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate + "%";
+    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+
 </script>
   <style id="theme-style"></style>
 </head>
@@ -54,28 +120,27 @@ function loadFile(event) {
   </div>
 
   <div class="right">
-    <h3>SUMMARY</h3>
-    <p id="stats"></p>
-    
-<div id="compact-summary" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
-  <div class="summary-box">📊 <strong>Total Trades</strong><br><span id="sum-total">0</span></div>
-  <div class="summary-box">✅ <strong>Wins</strong> / ❌ <strong>Losses</strong><br><span id="sum-winloss">0 / 0</span></div>
-  <div class="summary-box">🎯 <strong>Winrate</strong><br><span id="sum-winrate">0%</span></div>
-  <div class="summary-box">💰 <strong>Total PnL</strong><br><span id="sum-pnl">$0.00 (<span id="sum-pnl-pct">0%</span>)</span></div>
+<div id="compact-summary" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; justify-content: space-between;">
+  <div class="summary-box"><strong>Total Trades</strong><br><span id="sum-total">0</span></div>
+  <div class="summary-box"><strong>Wins</strong> / <strong>Losses</strong><br><span id="sum-winloss">0 / 0</span></div>
+  <div class="summary-box"><strong>Winrate</strong><br><span id="sum-winrate">0%</span></div>
+  <div class="summary-box"><strong>Total PnL</strong><br><span id="sum-pnl">$0.00 (<span id="sum-pnl-pct">0%</span>)$0.00 (<span id="sum-pnl-pct">0%</span>)</span></div>
 </div>
 <style>
   .summary-box {
     background: #f4f4f4;
     padding: 10px 15px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 18px;
     min-width: 150px;
     text-align: center;
-    box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    border: 1px solid #ccc; box-shadow: none;
   }
 </style>
 
-<h3>Equity Curve</h3>
+    <h3></h3>
+    <p id="stats"></p>
+    <h3>Equity Curve</h3>
     <canvas id="equityChart" width="400" height="200"></canvas>
   </div>
 
@@ -163,15 +228,7 @@ function loadFile(event) {
       const finalEquity = equity.length ? equity[equity.length - 1] : startBal;
       const totalPnLPercent = ((finalEquity - startBal) / startBal * 100).toFixed(2);
 
-      // Update compact summary values
-  document.getElementById("sum-total").textContent = trades.length;
-  document.getElementById("sum-winloss").textContent = wins.length + " / " + losses.length;
-  document.getElementById("sum-winrate").textContent = winrate + "%";
-  const finalEquity = equity.length ? equity[equity.length - 1] : startBal;
-  const totalPnl = finalEquity - startBal;
-  const totalPnlPct = ((finalEquity - startBal) / startBal * 100).toFixed(2);
-  document.getElementById("sum-pnl").innerHTML = "$" + totalPnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + totalPnlPct + "%</span>)";
-  document.getElementById("stats").innerHTML =
+      document.getElementById("stats").innerHTML =
         `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
         `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> $${format(avgWin$)} &nbsp; <strong>Avg Loss:</strong> $${format(avgLoss$)}<br>` +
         `<strong>Expectancy:</strong> $${format(expectancy)} &nbsp; <strong>Profit Factor:</strong> ${profitFactor}<br>` +
@@ -293,6 +350,112 @@ function loadFile(event) {
   reader.readAsText(event.target.files[0]);
 }
 
+
+window.addEventListener("load", () => {
+  const origUpdateStats = updateStats;
+  updateStats = function() {
+    origUpdateStats();
+
+    const winrate = document.querySelector("#stats").innerText.match(/Winrate.*?(\d+\.?\d*)%/);
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const eq = equity.length ? equity[equity.length - 1] : startBal;
+    const pnl = eq - startBal;
+    const pnlPct = ((pnl / startBal) * 100).toFixed(2);
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate ? winrate[1] + "%" : "0%";
+    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+
+
+window.addEventListener("load", () => {
+  const origUpdateStats = updateStats;
+  updateStats = function() {
+    origUpdateStats();
+
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
+
+    const eq = equity.length ? equity[equity.length - 1] : startBal;
+    const pnl = eq - startBal;
+    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate + "%";
+    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+
+
+window.addEventListener("load", () => {
+  const origUpdateStats = updateStats;
+  updateStats = function() {
+    origUpdateStats();
+
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
+
+    let eq = startBal;
+    equity.forEach(e => { eq = e; });
+    const pnl = eq - startBal;
+    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate + "%";
+    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+
 </script>
+
+
+
+
+
+
+
+
+
+
+<script>
+window.addEventListener("load", () => {
+  const origUpdateStats = window.updateStats;
+  window.updateStats = function() {
+    origUpdateStats();
+
+    const total = trades.length;
+    const wins = trades.filter(t => t.result === 'win').length;
+    const losses = trades.filter(t => t.result === 'loss').length;
+    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
+
+    // Pull current value from input field (if user has changed it)
+    const startBalInput = document.getElementById("startBal");
+    const safeStartBal = parseFloat(startBalInput ? startBalInput.value : startBal) || 0;
+    const lastEquity = equity.length ? (parseFloat(equity[equity.length - 1]) || safeStartBal) : safeStartBal;
+    const pnl = lastEquity - safeStartBal;
+    const pnlPct = safeStartBal > 0 ? ((pnl / safeStartBal) * 100).toFixed(2) : "0.00";
+
+    function formatNumber(n) {
+      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    document.getElementById("sum-total").textContent = total;
+    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
+    document.getElementById("sum-winrate").textContent = winrate + "%";
+    document.getElementById("sum-pnl").innerHTML = "$" + formatNumber(pnl) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
+  };
+});
+</script>
+
 </body>
 </html>
