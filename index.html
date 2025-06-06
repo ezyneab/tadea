@@ -3,89 +3,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tadea v9 – Clean Dark Gradient</title>
+  <title>Tadea v10 – Toggle Theme + $ PnL + Number Format</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      gap: 20px;
-      padding: 20px;
-      background: linear-gradient(to bottom right, #111, #222, #000);
-      color: #e0e0e0;
-    }
-
-    .left, .right {
-      flex: 1;
-      background: rgba(0, 0, 0, 0.85);
-      padding: 20px;
-      border-radius: 10px;
-    }
-
-    .right {
-      position: sticky;
-      top: 20px;
-      align-self: flex-start;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 10px;
-      color: #fff;
-    }
-
-    th, td {
-      border: 1px solid #555;
-      padding: 6px;
-      text-align: center;
-    }
-
-    th:nth-child(1), td:nth-child(1) { width: 8%; }
-    th:nth-child(2), td:nth-child(2) { width: 14%; }
-    th:nth-child(3), td:nth-child(3) { width: 14%; }
-    th:nth-child(4), td:nth-child(4) { width: 20%; }
-    th:nth-child(5), td:nth-child(5) { width: 22%; }
-    th:nth-child(6), td:nth-child(6) { width: 22%; }
-
-    h1, h3 {
-      margin-top: 0;
-      color: #00ffff;
-    }
-
-    input, button {
-      margin: 5px 5px 5px 0;
-      padding: 5px;
-      border: none;
-      border-radius: 4px;
-    }
-
-    input {
-      width: 80px;
-    }
-
-    button {
-      cursor: pointer;
-      background-color: #333;
-      color: #00ffff;
-      font-weight: bold;
-    }
-
-    button:hover {
-      background-color: #00ffff;
-      color: #000;
-    }
-
-    label {
-      display: inline-block;
-      margin-bottom: 8px;
-    }
+  <style id="theme-style">
   </style>
 </head>
 <body>
   <div class="left">
-    <h1>Tadea</h1>
+    <h1>Tadea <button onclick="toggleTheme()">Toggle Theme</button></h1>
     <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000" /></label><br />
     <label>Risk (% of balance): <input id="risk" type="number" step="0.01" value="1" /></label>
     <label>RR: <input id="rr" type="number" step="0.01" value="2" /></label><br />
@@ -96,7 +21,7 @@
 
     <table id="tradeTable">
       <tr>
-        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL (R)</th><th>Equity ($)</th>
+        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
       </tr>
     </table>
   </div>
@@ -112,17 +37,22 @@
     let trades = [];
     let equity = [];
     let equityChart = null;
+    let isDark = true;
+
+    function format(n) {
+      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 
     function addTrade(result) {
       const startBal = parseFloat(document.getElementById("startBal").value);
       const riskPercent = parseFloat(document.getElementById("risk").value);
       const rr = parseFloat(document.getElementById("rr").value);
-      const riskAmount = (equity.length ? equity[equity.length - 1] : startBal) * (riskPercent / 100);
+      const currentBal = equity.length ? equity[equity.length - 1] : startBal;
+      const riskAmount = currentBal * (riskPercent / 100);
       const pnl = result === "win" ? riskAmount * rr : -riskAmount;
-      const lastEquity = equity.length ? equity[equity.length - 1] : startBal;
-      const newEquity = lastEquity + pnl;
+      const newEquity = currentBal + pnl;
 
-      trades.push({ risk: riskPercent, rr, result, pnl: pnl / (startBal / 100), equity: newEquity });
+      trades.push({ risk: riskPercent, rr, result, pnl, equity: newEquity });
       equity.push(newEquity);
       updateTable();
       updateStats();
@@ -148,11 +78,11 @@
     function updateTable() {
       const table = document.getElementById("tradeTable");
       table.innerHTML = `<tr>
-        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL (R)</th><th>Equity ($)</th>
+        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
       </tr>`;
       trades.forEach((t, i) => {
         const row = table.insertRow();
-        row.innerHTML = `<td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${t.pnl.toFixed(2)}</td><td>${t.equity.toFixed(2)}</td>`;
+        row.innerHTML = `<td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${format(t.pnl)}</td><td>${format(t.equity)}</td>`;
       });
     }
 
@@ -161,8 +91,8 @@
       const wins = trades.filter(t => t.result === "win");
       const losses = trades.filter(t => t.result === "loss");
       const winrate = trades.length ? (wins.length / trades.length * 100).toFixed(2) : 0;
-      const avgWin$ = wins.length ? (wins.reduce((a, b) => a + b.pnl, 0) / wins.length * (startBal / 100)).toFixed(2) : "0.00";
-      const avgLoss$ = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length * (startBal / 100)).toFixed(2) : "0.00";
+      const avgWin$ = wins.length ? (wins.reduce((a, b) => a + b.pnl, 0) / wins.length).toFixed(2) : "0.00";
+      const avgLoss$ = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length).toFixed(2) : "0.00";
 
       let maxDD = 0;
       let peak = equity.length ? equity[0] : startBal;
@@ -187,7 +117,7 @@
 
       document.getElementById("stats").innerHTML =
         `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
-        `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> $${avgWin$} &nbsp; <strong>Avg Loss:</strong> $${avgLoss$}<br>` +
+        `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> $${format(avgWin$)} &nbsp; <strong>Avg Loss:</strong> $${format(avgLoss$)}<br>` +
         `<strong>Max Drawdown:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses}<br>` +
         `<strong>Total PnL:</strong> ${totalPnLPercent}%`;
     }
@@ -229,6 +159,38 @@
         equityChart.update();
       }
     }
+
+    function toggleTheme() {
+      isDark = !isDark;
+      const style = document.getElementById("theme-style");
+      style.innerHTML = isDark ? darkTheme : lightTheme;
+    }
+
+    const darkTheme = `
+      body { background: linear-gradient(to bottom right, #111, #222, #000); color: #e0e0e0; display: flex; gap: 20px; padding: 20px; margin: 0; font-family: 'Segoe UI', sans-serif; }
+      .left, .right { flex: 1; background: rgba(0, 0, 0, 0.85); padding: 20px; border-radius: 10px; }
+      .right { position: sticky; top: 20px; align-self: flex-start; }
+      table { border-collapse: collapse; width: 100%; margin-top: 10px; color: #fff; }
+      th, td { border: 1px solid #555; padding: 6px; text-align: center; }
+      h1, h3 { color: #00ffff; }
+      input, button { margin: 5px 5px 5px 0; padding: 5px; border: none; border-radius: 4px; }
+      button { background-color: #333; color: #00ffff; font-weight: bold; }
+      button:hover { background-color: #00ffff; color: #000; }
+    `;
+
+    const lightTheme = `
+      body { background: #f0f0f0; color: #222; display: flex; gap: 20px; padding: 20px; margin: 0; font-family: 'Segoe UI', sans-serif; }
+      .left, .right { flex: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+      .right { position: sticky; top: 20px; align-self: flex-start; }
+      table { border-collapse: collapse; width: 100%; margin-top: 10px; color: #222; }
+      th, td { border: 1px solid #aaa; padding: 6px; text-align: center; }
+      h1, h3 { color: #0077cc; }
+      input, button { margin: 5px 5px 5px 0; padding: 5px; border: none; border-radius: 4px; }
+      button { background-color: #0077cc; color: white; font-weight: bold; }
+      button:hover { background-color: #005fa3; color: white; }
+    `;
+
+    toggleTheme(); // load default theme
   </script>
 </body>
 </html>
