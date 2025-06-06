@@ -3,8 +3,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tadea v17 - Clean Version</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Tadea v18 - Editable Trades</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+function toggleSelectAll(source) {
+  document.querySelectorAll('.selectRow').forEach(cb => cb.checked = source.checked);
+}
+
+function editTrade(index) {
+  const t = trades[index];
+  const row = document.getElementById('tradeTable').rows[index + 1];
+  row.innerHTML = `<td></td>
+    <td>${index + 1}</td>
+    <td><input type='number' id='editRisk' value='${t.risk}' style='width:60px'></td>
+    <td><input type='number' id='editRR' value='${t.rr}' style='width:60px'></td>
+    <td>
+      <select id='editResult'>
+        <option value='win' ${t.result === "win" ? "selected" : ""}>Win</option>
+        <option value='loss' ${t.result === "loss" ? "selected" : ""}>Loss</option>
+      </select>
+    </td>
+    <td>${t.pnl}</td>
+    <td>${t.equity}</td>
+    <td><button onclick='saveTrade(${index})'>✅</button></td>`;
+}
+
+function saveTrade(index) {
+  const risk = parseFloat(document.getElementById('editRisk').value);
+  const rr = parseFloat(document.getElementById('editRR').value);
+  const result = document.getElementById('editResult').value;
+  trades[index].risk = risk;
+  trades[index].rr = rr;
+  trades[index].result = result;
+
+  // Recalculate equity
+  let equity = startBal;
+  trades.forEach((t, i) => {
+    const R = t.result === "win" ? t.rr : -1;
+    const riskAmt = equity * (t.risk / 100);
+    t.pnl = parseFloat((R * riskAmt).toFixed(2));
+    equity += t.pnl;
+    t.equity = parseFloat(equity.toFixed(2));
+  });
+
+  updateStats();
+  renderTable();
+}
+
+</script>
   <style id="theme-style"></style>
 </head>
 <body>
@@ -21,7 +66,7 @@
     <input type="file" id="loadFile" accept=".json" onchange="loadFromFile()" />
     <div id="tradeBox"><table id="tradeTable">
       <tr>
-        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
+        <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th><th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
       </tr>
     </table></div>
   </div>
@@ -78,11 +123,11 @@
     function updateTable() {
       const table = document.getElementById("tradeTable");
       table.innerHTML = `<tr>
-        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
-      </tr>`;
+        <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th><th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
+      <td><button onclick="editTrade(${i})">✏️</button></td></tr>`;
       trades.forEach((t, i) => {
         const row = table.insertRow();
-        row.innerHTML = `<td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${format(t.pnl)}</td><td>${format(t.equity)}</td>`;
+        row.innerHTML = `<td><input type='checkbox' class='selectRow' data-index='${i}'></td><td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${format(t.pnl)}</td><td>${format(t.equity)}</td>`;
       });
     }
 
@@ -212,6 +257,51 @@ button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px;background
 button:hover{background:#005fa3;color:#fff}`;
 
     toggleTheme();
-  </script>
+  
+function toggleSelectAll(source) {
+  document.querySelectorAll('.selectRow').forEach(cb => cb.checked = source.checked);
+}
+
+function editTrade(index) {
+  const t = trades[index];
+  const row = document.getElementById('tradeTable').rows[index + 1];
+  row.innerHTML = `<td></td>
+    <td>${index + 1}</td>
+    <td><input type='number' id='editRisk' value='${t.risk}' style='width:60px'></td>
+    <td><input type='number' id='editRR' value='${t.rr}' style='width:60px'></td>
+    <td>
+      <select id='editResult'>
+        <option value='win' ${t.result === "win" ? "selected" : ""}>Win</option>
+        <option value='loss' ${t.result === "loss" ? "selected" : ""}>Loss</option>
+      </select>
+    </td>
+    <td>${t.pnl}</td>
+    <td>${t.equity}</td>
+    <td><button onclick='saveTrade(${index})'>✅</button></td>`;
+}
+
+function saveTrade(index) {
+  const risk = parseFloat(document.getElementById('editRisk').value);
+  const rr = parseFloat(document.getElementById('editRR').value);
+  const result = document.getElementById('editResult').value;
+  trades[index].risk = risk;
+  trades[index].rr = rr;
+  trades[index].result = result;
+
+  // Recalculate equity
+  let equity = startBal;
+  trades.forEach((t, i) => {
+    const R = t.result === "win" ? t.rr : -1;
+    const riskAmt = equity * (t.risk / 100);
+    t.pnl = parseFloat((R * riskAmt).toFixed(2));
+    equity += t.pnl;
+    t.equity = parseFloat(equity.toFixed(2));
+  });
+
+  updateStats();
+  renderTable();
+}
+
+</script>
 </body>
 </html>
