@@ -1,27 +1,230 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tadea v7 – Real-Time Graph + $ Avg Win/Loss</title>
+  <title>Tadea v8 – Futuristic Space Theme</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; display: flex; gap: 20px; padding: 20px; margin: 0; }
-    .left, .right { flex: 1; }
-    .right { position: sticky; top: 20px; align-self: flex-start; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      gap: 20px;
+      padding: 20px;
+      background-image: url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1950&q=80');
+      background-size: cover;
+      background-attachment: fixed;
+      color: #e0e0e0;
+    }
+
+    .left, .right {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .right {
+      position: sticky;
+      top: 20px;
+      align-self: flex-start;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      color: #fff;
+    }
+
+    th, td {
+      border: 1px solid #666;
+      padding: 6px;
+      text-align: center;
+    }
+
     th:nth-child(1), td:nth-child(1) { width: 8%; }
     th:nth-child(2), td:nth-child(2) { width: 14%; }
     th:nth-child(3), td:nth-child(3) { width: 14%; }
     th:nth-child(4), td:nth-child(4) { width: 20%; }
     th:nth-child(5), td:nth-child(5) { width: 22%; }
     th:nth-child(6), td:nth-child(6) { width: 22%; }
-    h1, h3 { margin-top: 0; }
-    button { margin: 5px 5px 5px 0; }
+
+    h1, h3 {
+      margin-top: 0;
+      color: #00ffff;
+    }
+
+    input, button {
+      margin: 5px 5px 5px 0;
+      padding: 5px;
+      border: none;
+      border-radius: 4px;
+    }
+
+    input {
+      width: 80px;
+    }
+
+    button {
+      cursor: pointer;
+      background-color: #444;
+      color: #00ffff;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #00ffff;
+      color: #000;
+    }
   </style>
 </head>
 <body>
-  <!-- Skipping rest of content to keep short here. Will regenerate full version in actual use -->
-  <h1>Content Trimmed - Please use earlier code if full HTML is required again.</h1>
+  <div class="left">
+    <h1>Tadea</h1>
+    <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000"></label><br>
+    <label>Risk (R): <input id="risk" type="number" step="0.01" value="1"></label>
+    <label>RR: <input id="rr" type="number" step="0.01" value="2"></label><br>
+    <button onclick="addTrade('win')">Win</button>
+    <button onclick="addTrade('loss')">Loss</button>
+    <button onclick="deleteLastTrade()">Delete</button>
+    <button onclick="resetAll()">Reset</button>
+
+    <table id="tradeTable">
+      <tr>
+        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL (R)</th><th>Equity ($)</th>
+      </tr>
+    </table>
+  </div>
+
+  <div class="right">
+    <h3>SUMMARY</h3>
+    <p id="stats"></p>
+    <h3>Equity Curve</h3>
+    <canvas id="equityChart" width="400" height="200"></canvas>
+  </div>
+
+  <script>
+    let trades = [];
+    let equity = [];
+    let equityChart = null;
+
+    function addTrade(result) {
+      const startBal = parseFloat(document.getElementById("startBal").value);
+      const risk = parseFloat(document.getElementById("risk").value);
+      const rr = parseFloat(document.getElementById("rr").value);
+      const pnl = result === "win" ? risk * rr : -risk;
+      const lastEquity = equity.length ? equity[equity.length - 1] : startBal;
+      const newEquity = lastEquity + (pnl * (startBal / 100));
+
+      trades.push({ risk, rr, result, pnl, equity: newEquity });
+      equity.push(newEquity);
+      updateTable();
+      updateStats();
+      updateChart(newEquity);
+    }
+
+    function deleteLastTrade() {
+      trades.pop();
+      equity.pop();
+      updateTable();
+      updateStats();
+      rebuildChart();
+    }
+
+    function resetAll() {
+      trades = [];
+      equity = [];
+      updateTable();
+      updateStats();
+      rebuildChart();
+    }
+
+    function updateTable() {
+      const table = document.getElementById("tradeTable");
+      table.innerHTML = `<tr>
+        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL (R)</th><th>Equity ($)</th>
+      </tr>`;
+      trades.forEach((t, i) => {
+        const row = table.insertRow();
+        row.innerHTML = `<td>${i+1}</td><td>${t.risk}</td><td>${t.rr}</td><td>${t.result}</td><td>${t.pnl.toFixed(2)}</td><td>${t.equity.toFixed(2)}</td>`;
+      });
+    }
+
+    function updateStats() {
+      const startBal = parseFloat(document.getElementById("startBal").value);
+      const wins = trades.filter(t => t.result === "win");
+      const losses = trades.filter(t => t.result === "loss");
+      const winrate = trades.length ? (wins.length / trades.length * 100).toFixed(2) : 0;
+      const avgWin$ = wins.length ? (wins.reduce((a, b) => a + b.pnl, 0) / wins.length * (startBal / 100)).toFixed(2) : "0.00";
+      const avgLoss$ = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length * (startBal / 100)).toFixed(2) : "0.00";
+
+      let maxDD = 0;
+      let peak = equity.length ? equity[0] : startBal;
+      for (let i = 0; i < equity.length; i++) {
+        if (equity[i] > peak) peak = equity[i];
+        const dd = (peak - equity[i]) / peak * 100;
+        if (dd > maxDD) maxDD = dd;
+      }
+
+      let maxConsecLosses = 0, currentConsecLosses = 0;
+      trades.forEach(t => {
+        if (t.result === "loss") {
+          currentConsecLosses++;
+          if (currentConsecLosses > maxConsecLosses) maxConsecLosses = currentConsecLosses;
+        } else {
+          currentConsecLosses = 0;
+        }
+      });
+
+      const finalEquity = equity.length ? equity[equity.length - 1] : startBal;
+      const totalPnLPercent = ((finalEquity - startBal) / startBal * 100).toFixed(2);
+
+      document.getElementById("stats").innerHTML =
+        `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
+        `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> $${avgWin$} &nbsp; <strong>Avg Loss:</strong> $${avgLoss$}<br>` +
+        `<strong>Max Drawdown:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses}<br>` +
+        `<strong>Total PnL:</strong> ${totalPnLPercent}%`;
+    }
+
+    function rebuildChart() {
+      const ctx = document.getElementById('equityChart').getContext('2d');
+      if (equityChart) equityChart.destroy();
+      equityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: equity.map((_, i) => i + 1),
+          datasets: [{
+            label: 'Equity ($)',
+            data: equity,
+            borderColor: '#00ffff',
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 2,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          animation: { duration: 300, easing: 'easeOutQuart' },
+          scales: {
+            x: { title: { display: true, text: 'Trade #' } },
+            y: { title: { display: true, text: 'Equity ($)' } }
+          }
+        }
+      });
+    }
+
+    function updateChart(newEquity) {
+      if (!equityChart) {
+        rebuildChart();
+      } else {
+        equityChart.data.labels.push(trades.length);
+        equityChart.data.datasets[0].data.push(newEquity);
+        equityChart.update();
+      }
+    }
+  </script>
 </body>
 </html>
