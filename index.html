@@ -19,11 +19,11 @@
     <button onclick="resetAll()">Reset</button><br />
     <button onclick="saveToFile()">💾 Save</button>
     <input type="file" id="loadFile" accept=".json" onchange="loadFromFile()" />
-    <table id="tradeTable">
+    <div id="tradeBox"><table id="tradeTable">
       <tr>
         <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
       </tr>
-    </table>
+    </table></div>
   </div>
 
   <div class="right">
@@ -137,7 +137,9 @@
               data: [...equity],
               borderColor: "#00ffff",
               borderWidth: 2,
-              tension: 0.5,
+              tension: 0.75,
+              pointRadius: 0,
+              animation: { duration: 500, easing: 'easeOutQuart' },
               pointRadius: 2,
               fill: false
             }]
