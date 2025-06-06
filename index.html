@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tadea v5 – Sticky Stats Layout</title>
+  <title>Tadea v6 – Better Table + PnL % Summary</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial, sans-serif; display: flex; gap: 20px; padding: 20px; margin: 0; }
@@ -12,6 +12,7 @@
     table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 8px; width: 100%; }
     h1, h3 { margin-top: 0; }
     button { margin: 5px 5px 5px 0; }
+    th:nth-child(1), td:nth-child(1) { width: 5%; text-align: center; }
   </style>
 </head>
 <body>
@@ -83,6 +84,7 @@
     }
 
     function updateStats() {
+      const startBal = parseFloat(document.getElementById("startBal").value);
       const wins = trades.filter(t => t.result === "win");
       const losses = trades.filter(t => t.result === "loss");
       const winrate = trades.length ? (wins.length / trades.length * 100).toFixed(2) : 0;
@@ -90,7 +92,7 @@
       const avgLoss = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length).toFixed(2) : "0.00";
 
       let maxDD = 0;
-      let peak = equity.length ? equity[0] : parseFloat(document.getElementById("startBal").value);
+      let peak = equity.length ? equity[0] : startBal;
       for (let i = 0; i < equity.length; i++) {
         if (equity[i] > peak) peak = equity[i];
         const dd = (peak - equity[i]) / peak * 100;
@@ -107,10 +109,14 @@
         }
       });
 
+      const finalEquity = equity.length ? equity[equity.length - 1] : startBal;
+      const totalPnLPercent = ((finalEquity - startBal) / startBal * 100).toFixed(2);
+
       document.getElementById("stats").innerHTML =
         `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
         `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> ${avgWin}R &nbsp; <strong>Avg Loss:</strong> ${avgLoss}R<br>` +
-        `<strong>Max Drawdown:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses}`;
+        `<strong>Max Drawdown:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses}<br>` +
+        `<strong>Total PnL:</strong> ${totalPnLPercent}%`;
     }
 
     function updateChart() {
