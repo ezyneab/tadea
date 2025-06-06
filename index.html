@@ -3,10 +3,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tadea v10 – Toggle Theme + $ PnL + Number Format</title>
+  <title>Tadea v11 – Expectancy & Fix Chart</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style id="theme-style">
-  </style>
+  <style id="theme-style"></style>
 </head>
 <body>
   <div class="left">
@@ -40,7 +39,7 @@
     let isDark = true;
 
     function format(n) {
-      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function addTrade(result) {
@@ -56,7 +55,7 @@
       equity.push(newEquity);
       updateTable();
       updateStats();
-      updateChart(newEquity);
+      updateChart(); // Sync chart directly from equity[]
     }
 
     function deleteLastTrade() {
@@ -64,7 +63,7 @@
       equity.pop();
       updateTable();
       updateStats();
-      rebuildChart();
+      updateChart();
     }
 
     function resetAll() {
@@ -72,7 +71,7 @@
       equity = [];
       updateTable();
       updateStats();
-      rebuildChart();
+      updateChart();
     }
 
     function updateTable() {
@@ -91,8 +90,16 @@
       const wins = trades.filter(t => t.result === "win");
       const losses = trades.filter(t => t.result === "loss");
       const winrate = trades.length ? (wins.length / trades.length * 100).toFixed(2) : 0;
-      const avgWin$ = wins.length ? (wins.reduce((a, b) => a + b.pnl, 0) / wins.length).toFixed(2) : "0.00";
-      const avgLoss$ = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length).toFixed(2) : "0.00";
+      const avgWin$ = wins.length ? (wins.reduce((a, b) => a + b.pnl, 0) / wins.length) : 0;
+      const avgLoss$ = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length) : 0;
+
+      const expectancy = (wins.length && losses.length)
+        ? ((winrate / 100) * avgWin$ + ((1 - (winrate / 100)) * avgLoss$)).toFixed(2)
+        : "0.00";
+
+      const profitFactor = (Math.abs(avgLoss$) > 0)
+        ? (avgWin$ * wins.length / Math.abs(avgLoss$ * losses.length)).toFixed(2)
+        : "∞";
 
       let maxDD = 0;
       let peak = equity.length ? equity[0] : startBal;
@@ -102,13 +109,17 @@
         if (dd > maxDD) maxDD = dd;
       }
 
-      let maxConsecLosses = 0, currentConsecLosses = 0;
+      let maxConsecLosses = 0, maxConsecWins = 0;
+      let curLoss = 0, curWin = 0;
       trades.forEach(t => {
         if (t.result === "loss") {
-          currentConsecLosses++;
-          if (currentConsecLosses > maxConsecLosses) maxConsecLosses = currentConsecLosses;
+          curLoss++;
+          maxConsecLosses = Math.max(maxConsecLosses, curLoss);
+          curWin = 0;
         } else {
-          currentConsecLosses = 0;
+          curWin++;
+          maxConsecWins = Math.max(maxConsecWins, curWin);
+          curLoss = 0;
         }
       });
 
@@ -118,11 +129,12 @@
       document.getElementById("stats").innerHTML =
         `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
         `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> $${format(avgWin$)} &nbsp; <strong>Avg Loss:</strong> $${format(avgLoss$)}<br>` +
-        `<strong>Max Drawdown:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses}<br>` +
+        `<strong>Expectancy:</strong> $${format(expectancy)} &nbsp; <strong>Profit Factor:</strong> ${profitFactor}<br>` +
+        `<strong>Max DD:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses} &nbsp; <strong>Wins:</strong> ${maxConsecWins}<br>` +
         `<strong>Total PnL:</strong> ${totalPnLPercent}%`;
     }
 
-    function rebuildChart() {
+    function updateChart() {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChart) equityChart.destroy();
       equityChart = new Chart(ctx, {
@@ -141,7 +153,7 @@
         },
         options: {
           responsive: true,
-          animation: { duration: 300, easing: 'easeOutQuart' },
+          animation: { duration: 300 },
           scales: {
             x: { title: { display: true, text: 'Trade #' } },
             y: { title: { display: true, text: 'Equity ($)' } }
@@ -150,47 +162,33 @@
       });
     }
 
-    function updateChart(newEquity) {
-      if (!equityChart) {
-        rebuildChart();
-      } else {
-        equityChart.data.labels.push(trades.length);
-        equityChart.data.datasets[0].data.push(newEquity);
-        equityChart.update();
-      }
-    }
-
     function toggleTheme() {
       isDark = !isDark;
       const style = document.getElementById("theme-style");
       style.innerHTML = isDark ? darkTheme : lightTheme;
     }
 
-    const darkTheme = `
-      body { background: linear-gradient(to bottom right, #111, #222, #000); color: #e0e0e0; display: flex; gap: 20px; padding: 20px; margin: 0; font-family: 'Segoe UI', sans-serif; }
-      .left, .right { flex: 1; background: rgba(0, 0, 0, 0.85); padding: 20px; border-radius: 10px; }
-      .right { position: sticky; top: 20px; align-self: flex-start; }
-      table { border-collapse: collapse; width: 100%; margin-top: 10px; color: #fff; }
-      th, td { border: 1px solid #555; padding: 6px; text-align: center; }
-      h1, h3 { color: #00ffff; }
-      input, button { margin: 5px 5px 5px 0; padding: 5px; border: none; border-radius: 4px; }
-      button { background-color: #333; color: #00ffff; font-weight: bold; }
-      button:hover { background-color: #00ffff; color: #000; }
-    `;
+    const darkTheme = `body{background:#111;color:#fff;display:flex;gap:20px;padding:20px;margin:0;font-family:sans-serif}
+.left,.right{flex:1;background:#222;padding:20px;border-radius:10px}
+.right{position:sticky;top:20px;align-self:flex-start}
+table{border-collapse:collapse;width:100%;margin-top:10px;color:#fff}
+th,td{border:1px solid #555;padding:6px;text-align:center}
+h1,h3{color:#0ff}
+input,button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px}
+button{background:#333;color:#0ff;font-weight:bold}
+button:hover{background:#0ff;color:#000}`;
 
-    const lightTheme = `
-      body { background: #f0f0f0; color: #222; display: flex; gap: 20px; padding: 20px; margin: 0; font-family: 'Segoe UI', sans-serif; }
-      .left, .right { flex: 1; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-      .right { position: sticky; top: 20px; align-self: flex-start; }
-      table { border-collapse: collapse; width: 100%; margin-top: 10px; color: #222; }
-      th, td { border: 1px solid #aaa; padding: 6px; text-align: center; }
-      h1, h3 { color: #0077cc; }
-      input, button { margin: 5px 5px 5px 0; padding: 5px; border: none; border-radius: 4px; }
-      button { background-color: #0077cc; color: white; font-weight: bold; }
-      button:hover { background-color: #005fa3; color: white; }
-    `;
+    const lightTheme = `body{background:#f0f0f0;color:#222;display:flex;gap:20px;padding:20px;margin:0;font-family:sans-serif}
+.left,.right{flex:1;background:#fff;padding:20px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,.1)}
+.right{position:sticky;top:20px;align-self:flex-start}
+table{border-collapse:collapse;width:100%;margin-top:10px;color:#222}
+th,td{border:1px solid #aaa;padding:6px;text-align:center}
+h1,h3{color:#0077cc}
+input,button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px}
+button{background:#0077cc;color:#fff;font-weight:bold}
+button:hover{background:#005fa3;color:#fff}`;
 
-    toggleTheme(); // load default theme
+    toggleTheme();
   </script>
 </body>
 </html>
