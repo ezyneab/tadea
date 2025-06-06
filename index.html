@@ -303,5 +303,23 @@ function saveTrade(index) {
 }
 
 </script>
+
+<script>
+function insertTrade(result) {
+  const riskPercent = parseFloat(document.getElementById("risk").value);
+  const rr = parseFloat(document.getElementById("rr").value);
+  if (isNaN(riskPercent) || isNaN(rr)) return;
+
+  const lastEquity = trades.length ? trades[trades.length - 1].equity : startBal;
+  const riskAmt = lastEquity * (riskPercent / 100);
+  const R = result === "win" ? rr : -1;
+  const pnl = parseFloat((R * riskAmt).toFixed(2));
+  const newEquity = parseFloat((lastEquity + pnl).toFixed(2));
+
+  trades.push({ risk: riskPercent, rr, result, pnl, equity: newEquity });
+  updateStats();
+  renderTable();
+}
+</script>
 </body>
 </html>
