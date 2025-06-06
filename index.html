@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tadea v13 – Stable</title>
+  <title>Tadea v14</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style id="theme-style"></style>
 </head>
@@ -16,8 +16,9 @@
     <button onclick="addTrade('win')">Win</button>
     <button onclick="addTrade('loss')">Loss</button>
     <button onclick="deleteLastTrade()">Delete</button>
-    <button onclick="resetAll()">Reset</button>
-
+    <button onclick="resetAll()">Reset</button><br />
+    <button onclick="saveToFile()">💾 Save</button>
+    <input type="file" id="loadFile" accept=".json" onchange="loadFromFile()" />
     <table id="tradeTable">
       <tr>
         <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
@@ -136,7 +137,7 @@
               data: [...equity],
               borderColor: "#00ffff",
               borderWidth: 2,
-              tension: 0.3,
+              tension: 0.5,
               pointRadius: 2,
               fill: false
             }]
@@ -155,6 +156,31 @@
         equityChart.data.datasets[0].data = [...equity];
         equityChart.update();
       }
+    }
+
+    function saveToFile() {
+      const data = { trades, equity };
+      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "tadea_data.json";
+      a.click();
+    }
+
+    function loadFromFile() {
+      const fileInput = document.getElementById("loadFile");
+      const file = fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = JSON.parse(e.target.result);
+        trades = data.trades || [];
+        equity = data.equity || [];
+        updateTable();
+        updateStats();
+        updateChart();
+      };
+      reader.readAsText(file);
     }
 
     function toggleTheme() {
