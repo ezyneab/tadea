@@ -2,8 +2,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Tadea v8 – Futuristic Space Theme</title>
+  <meta charset="UTF-8" />
+  <title>Tadea v9 – Clean Dark Gradient</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -12,15 +12,13 @@
       display: flex;
       gap: 20px;
       padding: 20px;
-      background-image: url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1950&q=80');
-      background-size: cover;
-      background-attachment: fixed;
+      background: linear-gradient(to bottom right, #111, #222, #000);
       color: #e0e0e0;
     }
 
     .left, .right {
       flex: 1;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.85);
       padding: 20px;
       border-radius: 10px;
     }
@@ -39,7 +37,7 @@
     }
 
     th, td {
-      border: 1px solid #666;
+      border: 1px solid #555;
       padding: 6px;
       text-align: center;
     }
@@ -69,7 +67,7 @@
 
     button {
       cursor: pointer;
-      background-color: #444;
+      background-color: #333;
       color: #00ffff;
       font-weight: bold;
     }
@@ -78,14 +76,19 @@
       background-color: #00ffff;
       color: #000;
     }
+
+    label {
+      display: inline-block;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
   <div class="left">
     <h1>Tadea</h1>
-    <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000"></label><br>
-    <label>Risk (R): <input id="risk" type="number" step="0.01" value="1"></label>
-    <label>RR: <input id="rr" type="number" step="0.01" value="2"></label><br>
+    <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000" /></label><br />
+    <label>Risk (% of balance): <input id="risk" type="number" step="0.01" value="1" /></label>
+    <label>RR: <input id="rr" type="number" step="0.01" value="2" /></label><br />
     <button onclick="addTrade('win')">Win</button>
     <button onclick="addTrade('loss')">Loss</button>
     <button onclick="deleteLastTrade()">Delete</button>
@@ -112,13 +115,14 @@
 
     function addTrade(result) {
       const startBal = parseFloat(document.getElementById("startBal").value);
-      const risk = parseFloat(document.getElementById("risk").value);
+      const riskPercent = parseFloat(document.getElementById("risk").value);
       const rr = parseFloat(document.getElementById("rr").value);
-      const pnl = result === "win" ? risk * rr : -risk;
+      const riskAmount = (equity.length ? equity[equity.length - 1] : startBal) * (riskPercent / 100);
+      const pnl = result === "win" ? riskAmount * rr : -riskAmount;
       const lastEquity = equity.length ? equity[equity.length - 1] : startBal;
-      const newEquity = lastEquity + (pnl * (startBal / 100));
+      const newEquity = lastEquity + pnl;
 
-      trades.push({ risk, rr, result, pnl, equity: newEquity });
+      trades.push({ risk: riskPercent, rr, result, pnl: pnl / (startBal / 100), equity: newEquity });
       equity.push(newEquity);
       updateTable();
       updateStats();
@@ -148,7 +152,7 @@
       </tr>`;
       trades.forEach((t, i) => {
         const row = table.insertRow();
-        row.innerHTML = `<td>${i+1}</td><td>${t.risk}</td><td>${t.rr}</td><td>${t.result}</td><td>${t.pnl.toFixed(2)}</td><td>${t.equity.toFixed(2)}</td>`;
+        row.innerHTML = `<td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${t.pnl.toFixed(2)}</td><td>${t.equity.toFixed(2)}</td>`;
       });
     }
 
