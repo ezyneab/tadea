@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tadea - Trade Tracker MVP</title>
+  <script>
+    function calculateResults() {
+      const risk = parseFloat(document.getElementById("risk").value);
+      const rr = parseFloat(document.getElementById("rr").value);
+      const result = document.getElementById("result").value;
+      let pnl = 0;
+
+      if (result === "win") pnl = risk * rr;
+      else if (result === "loss") pnl = -risk;
+
+      document.getElementById("pnl").innerText = "PnL: " + pnl.toFixed(2) + "R";
+    }
+  </script>
+</head>
+<body>
+  <h1>Tadea - Trade Tracker</h1>
+  <label>Risk (%): <input id="risk" type="number" step="0.01"></label><br>
+  <label>RR (Reward:Risk): <input id="rr" type="number" step="0.01"></label><br>
+  <label>Result:
+    <select id="result">
+      <option value="win">Win</option>
+      <option value="loss">Loss</option>
+    </select>
+  </label><br>
+  <button onclick="calculateResults()">Calculate</button>
+  <p id="pnl">PnL: </p>
+</body>
+</html>
