@@ -1,33 +1,109 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tadea - Trade Tracker MVP</title>
-  <script>
-    function calculateResults() {
-      const risk = parseFloat(document.getElementById("risk").value);
-      const rr = parseFloat(document.getElementById("rr").value);
-      const result = document.getElementById("result").value;
-      let pnl = 0;
-
-      if (result === "win") pnl = risk * rr;
-      else if (result === "loss") pnl = -risk;
-
-      document.getElementById("pnl").innerText = "PnL: " + pnl.toFixed(2) + "R";
-    }
-  </script>
+  <title>Tadea v2 - Multi-Trade Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 8px; }
+    table { margin-top: 20px; width: 100%; }
+  </style>
 </head>
 <body>
-  <h1>Tadea - Trade Tracker</h1>
-  <label>Risk (%): <input id="risk" type="number" step="0.01"></label><br>
-  <label>RR (Reward:Risk): <input id="rr" type="number" step="0.01"></label><br>
+  <h1>Tadea v2 – Trade Tracker</h1>
+
+  <label>Risk (R): <input id="risk" type="number" step="0.01" value="1"></label>
+  <label>RR: <input id="rr" type="number" step="0.01" value="2"></label>
   <label>Result:
     <select id="result">
       <option value="win">Win</option>
       <option value="loss">Loss</option>
     </select>
-  </label><br>
-  <button onclick="calculateResults()">Calculate</button>
-  <p id="pnl">PnL: </p>
+  </label>
+  <button onclick="addTrade()">Add Trade</button>
+
+  <table id="tradeTable">
+    <tr>
+      <th>#</th>
+      <th>Risk</th>
+      <th>RR</th>
+      <th>Result</th>
+      <th>PnL (R)</th>
+      <th>Cumulative</th>
+    </tr>
+  </table>
+
+  <h3>Stats</h3>
+  <p id="stats"></p>
+
+  <canvas id="equityChart" width="600" height="300"></canvas>
+
+  <script>
+    let trades = [];
+    let equity = [];
+
+    function addTrade() {
+      const risk = parseFloat(document.getElementById("risk").value);
+      const rr = parseFloat(document.getElementById("rr").value);
+      const result = document.getElementById("result").value;
+
+      let pnl = result === "win" ? risk * rr : -risk;
+      let lastEquity = equity.length ? equity[equity.length - 1] : 0;
+      let newEquity = lastEquity + pnl;
+
+      trades.push({ risk, rr, result, pnl, cum: newEquity });
+      equity.push(newEquity);
+      updateTable();
+      updateStats();
+      updateChart();
+    }
+
+    function updateTable() {
+      const table = document.getElementById("tradeTable");
+      table.innerHTML = "<tr><th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL (R)</th><th>Cumulative</th></tr>";
+      trades.forEach((t, i) => {
+        const row = table.insertRow();
+        row.innerHTML = `<td>${i+1}</td><td>${t.risk}</td><td>${t.rr}</td><td>${t.result}</td><td>${t.pnl.toFixed(2)}</td><td>${t.cum.toFixed(2)}</td>`;
+      });
+    }
+
+    function updateStats() {
+      const wins = trades.filter(t => t.result === "win").length;
+      const losses = trades.length - wins;
+      const winrate = trades.length ? (wins / trades.length * 100).toFixed(2) : 0;
+      const avgWin = wins ? trades.filter(t => t.result === "win").reduce((a, b) => a + b.pnl, 0) / wins : 0;
+      const avgLoss = losses ? trades.filter(t => t.result === "loss").reduce((a, b) => a + b.pnl, 0) / losses : 0;
+      const expectancy = (winrate / 100 * avgWin) + ((1 - winrate / 100) * avgLoss);
+      const maxDD = Math.min(...equity, 0);
+
+      document.getElementById("stats").innerText =
+        `Trades: ${trades.length} | Winrate: ${winrate}% | Expectancy: ${expectancy.toFixed(2)}R | Max DD: ${maxDD.toFixed(2)}R`;
+    }
+
+    function updateChart() {
+      const ctx = document.getElementById('equityChart').getContext('2d');
+      if (window.equityChart) window.equityChart.destroy();
+      window.equityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: equity.map((_, i) => i + 1),
+          datasets: [{
+            label: 'Equity Curve',
+            data: equity,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Trade #' } },
+            y: { title: { display: true, text: 'Equity (R)' } }
+          }
+        }
+      });
+    }
+  </script>
 </body>
 </html>
