@@ -3,42 +3,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tadea v4 – Real-Time Equity Tracker</title>
+  <title>Tadea v5 – Sticky Stats Layout</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px; max-width: 800px; margin: auto; }
-    table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 8px; }
-    table { margin-top: 20px; width: 100%; }
-    button { margin: 5px; }
+    body { font-family: Arial, sans-serif; display: flex; gap: 20px; padding: 20px; margin: 0; }
+    .left, .right { flex: 1; }
+    .right { position: sticky; top: 20px; align-self: flex-start; }
+    table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 8px; width: 100%; }
+    h1, h3 { margin-top: 0; }
+    button { margin: 5px 5px 5px 0; }
   </style>
 </head>
 <body>
-  <h1>Tadea v4 – Real-Time Equity Tracker</h1>
+  <div class="left">
+    <h1>Tadea</h1>
+    <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000"></label><br>
+    <label>Risk (R): <input id="risk" type="number" step="0.01" value="1"></label>
+    <label>RR: <input id="rr" type="number" step="0.01" value="2"></label><br>
+    <button onclick="addTrade('win')" style="background:#28a745;color:white;">Win</button>
+    <button onclick="addTrade('loss')" style="background:#dc3545;color:white;">Loss</button>
+    <button onclick="deleteLastTrade()">Delete</button>
+    <button onclick="resetAll()">Reset</button>
 
-  <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000"></label><br>
-  <label>Risk (R): <input id="risk" type="number" step="0.01" value="1"></label>
-  <label>RR: <input id="rr" type="number" step="0.01" value="2"></label><br>
+    <table id="tradeTable">
+      <tr><th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL (R)</th><th>Equity ($)</th></tr>
+    </table>
+  </div>
 
-  <button onclick="addTrade('win')">➕ Win</button>
-  <button onclick="addTrade('loss')">➖ Loss</button>
-  <button onclick="deleteLastTrade()">🗑 Delete Last</button>
-  <button onclick="resetAll()">♻️ Reset</button>
-
-  <table id="tradeTable">
-    <tr>
-      <th>#</th>
-      <th>Risk</th>
-      <th>RR</th>
-      <th>Result</th>
-      <th>PnL (R)</th>
-      <th>Equity ($)</th>
-    </tr>
-  </table>
-
-  <h3>📊 Stats</h3>
-  <p id="stats"></p>
-
-  <canvas id="equityChart" width="600" height="300"></canvas>
+  <div class="right">
+    <h3>SUMMARY</h3>
+    <p id="stats"></p>
+    <h3>Equity Curve</h3>
+    <canvas id="equityChart" width="400" height="200"></canvas>
+  </div>
 
   <script>
     let trades = [];
@@ -49,10 +46,9 @@
       const startBal = parseFloat(document.getElementById("startBal").value);
       const risk = parseFloat(document.getElementById("risk").value);
       const rr = parseFloat(document.getElementById("rr").value);
-
-      let pnl = result === "win" ? risk * rr : -risk;
-      let lastEquity = equity.length ? equity[equity.length - 1] : startBal;
-      let newEquity = lastEquity + (pnl * (startBal / 100));
+      const pnl = result === "win" ? risk * rr : -risk;
+      const lastEquity = equity.length ? equity[equity.length - 1] : startBal;
+      const newEquity = lastEquity + (pnl * (startBal / 100));
 
       trades.push({ risk, rr, result, pnl, equity: newEquity });
       equity.push(newEquity);
@@ -97,7 +93,7 @@
       let peak = equity.length ? equity[0] : parseFloat(document.getElementById("startBal").value);
       for (let i = 0; i < equity.length; i++) {
         if (equity[i] > peak) peak = equity[i];
-        let dd = (peak - equity[i]) / peak * 100;
+        const dd = (peak - equity[i]) / peak * 100;
         if (dd > maxDD) maxDD = dd;
       }
 
@@ -111,9 +107,10 @@
         }
       });
 
-      document.getElementById("stats").innerText =
-        `Trades: ${trades.length} | Wins: ${wins.length} | Losses: ${losses.length} | Winrate: ${winrate}%\n` +
-        `Avg Win: ${avgWin}R | Avg Loss: ${avgLoss}R | Max Drawdown: ${maxDD.toFixed(2)}% | Max Consec Losses: ${maxConsecLosses}`;
+      document.getElementById("stats").innerHTML =
+        `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
+        `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> ${avgWin}R &nbsp; <strong>Avg Loss:</strong> ${avgLoss}R<br>` +
+        `<strong>Max Drawdown:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Losses:</strong> ${maxConsecLosses}`;
     }
 
     function updateChart() {
@@ -124,21 +121,18 @@
         data: {
           labels: equity.map((_, i) => i + 1),
           datasets: [{
-            label: 'Equity Curve ($)',
+            label: 'Equity ($)',
             data: equity,
-            borderColor: 'blue',
+            borderColor: 'green',
             borderWidth: 2,
-            tension: 0.4,
-            pointRadius: 3,
+            tension: 0.3,
+            pointRadius: 2,
             fill: false
           }]
         },
         options: {
           responsive: true,
-          animation: {
-            duration: 500,
-            easing: 'easeOutQuart'
-          },
+          animation: { duration: 500, easing: 'easeOutQuart' },
           scales: {
             x: { title: { display: true, text: 'Trade #' } },
             y: { title: { display: true, text: 'Equity ($)' } }
