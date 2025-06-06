@@ -137,7 +137,7 @@
     function updateChart() {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChart) equityChart.destroy();
-      equityChart = new Chart(ctx, {
+      
         type: 'line',
         data: {
           labels: equity.map((_, i) => i + 1),
@@ -174,7 +174,7 @@
 table{border-collapse:collapse;width:100%;margin-top:10px;color:#fff}
 th,td{border:1px solid #555;padding:6px;text-align:center}
 h1,h3{color:#0ff}
-input,button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px}
+input { border: 1px solid #ccc; padding: 5px; background: #fff; color: #222; } button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px}
 button{background:#333;color:#0ff;font-weight:bold}
 button:hover{background:#0ff;color:#000}`;
 
@@ -184,7 +184,7 @@ button:hover{background:#0ff;color:#000}`;
 table{border-collapse:collapse;width:100%;margin-top:10px;color:#222}
 th,td{border:1px solid #aaa;padding:6px;text-align:center}
 h1,h3{color:#0077cc}
-input,button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px}
+input { border: 1px solid #ccc; padding: 5px; background: #fff; color: #222; } button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px}
 button{background:#0077cc;color:#fff;font-weight:bold}
 button:hover{background:#005fa3;color:#fff}`;
 
