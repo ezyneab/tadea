@@ -193,7 +193,7 @@ window.addEventListener("load", () => {
       </tr>`;
       trades.forEach((t, i) => {
         const row = table.insertRow();
-        row.innerHTML = `<td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${format(t.pnl)}</td><td>${format(t.equity)}</td>`;
+        row.innerHTML = `<td>${trade.tag}</td>` + <td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${format(t.pnl)}</td><td>${format(t.equity)}</td>`;
       });
     }
 
