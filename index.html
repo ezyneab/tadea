@@ -2,460 +2,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Tadea v17.3 -  Panel (Safe)</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-function recalculateTrades() {
-  let equity = startBal;
-  trades.forEach(t => {
-    const R = t.result === "win" ? t.rr : -1;
-    const riskAmt = equity * (t.risk / 100);
-    t.pnl = parseFloat((R * riskAmt).toFixed(2));
-    equity += t.pnl;
-    t.equity = parseFloat(equity.toFixed(2));
-  });
-}
-
-function loadFile(event) {
-  const reader = new FileReader();
-  reader.onload = function() {
-    try {
-      trades = JSON.parse(reader.result);
-      recalculateTrades();
-      updateStats();
-      renderTable();
-    } catch (e) {
-      alert("Invalid JSON file.");
-    }
-  };
-  reader.readAsText(event.target.files[0]);
-}
-
-
-window.addEventListener("load", () => {
-  const origUpdateStats = updateStats;
-  updateStats = function() {
-    origUpdateStats();
-
-    const winrate = document.querySelector("#stats").innerText.match(/Winrate.*?(\d+\.?\d*)%/);
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const eq = equity.length ? equity[equity.length - 1] : startBal;
-    const pnl = eq - startBal;
-    const pnlPct = ((pnl / startBal) * 100).toFixed(2);
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate ? winrate[1] + "%" : "0%";
-    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-
-
-window.addEventListener("load", () => {
-  const origUpdateStats = updateStats;
-  updateStats = function() {
-    origUpdateStats();
-
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
-
-    const eq = equity.length ? equity[equity.length - 1] : startBal;
-    const pnl = eq - startBal;
-    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate + "%";
-    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-
-
-window.addEventListener("load", () => {
-  const origUpdateStats = updateStats;
-  updateStats = function() {
-    origUpdateStats();
-
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
-
-    let eq = startBal;
-    equity.forEach(e => { eq = e; });
-    const pnl = eq - startBal;
-    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate + "%";
-    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-
-</script>
-  <style id="theme-style"></style>
+  <meta charset="UTF-8">
+  <title>Tadea v18</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+    input, select { padding: 5px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
+    th { background: #eee; }
+  </style>
 </head>
 <body>
-  <div class="left">
-    <h1>Tadea <button onclick="toggleTheme()">Toggle Theme</button></h1>
-    <label>Starting Balance ($): <input id="startBal" type="number" step="0.01" value="10000" /></label><br />
-    <label>Risk (%): <input id="risk" type="number" step="0.01" value="1" /></label>
-    <label>RR: <input id="rr" type="number" step="0.01" value="2" /></label><br />
-    <button onclick="addTrade('win')">Win</button>
-    <button onclick="addTrade('loss')">Loss</button>
-    <button onclick="deleteLastTrade()">Delete</button>
-    <button onclick="resetAll()">Reset</button><br />
-    <button onclick="saveToFile()">💾 Save</button>
-    <input type="file" id="loadFile" accept=".json" onchange="loadFromFile()" />
-    <div id="tradeBox"><table id="tradeTable">
+  <h2>Tadea v18 - Trade Logger</h2>
+  <label>Balance: <input id="balanceInput" type="number" value="10000"></label>
+  <label>Risk %: <input id="riskInput" type="number" value="1"></label>
+  <label>RR: <input id="rrInput" type="number" value="1.5"></label>
+  <label>System Tag: <input id="tagInput" type="text" placeholder="e.g. Donchian"></label>
+  <button onclick="addTrade('win')">Win</button>
+  <button onclick="addTrade('loss')">Loss</button>
+  <br><br>
+  <label>Filter by Tag:
+    <select id="filterTag" onchange="renderTable()">
+      <option value="all">All</option>
+    </select>
+  </label>
+
+  <table>
+    <thead>
       <tr>
-        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
+        <th>#</th><th>System</th><th>Risk %</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
       </tr>
-    </table></div>
-  </div>
+    </thead>
+    <tbody id="tradeTableBody"></tbody>
+  </table>
 
-  <div class="right">
-<div id="compact-summary" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; justify-content: space-between;">
-  <div class="summary-box"><strong>Total Trades</strong><br><span id="sum-total">0</span></div>
-  <div class="summary-box"><strong>Wins</strong> / <strong>Losses</strong><br><span id="sum-winloss">0 / 0</span></div>
-  <div class="summary-box"><strong>Winrate</strong><br><span id="sum-winrate">0%</span></div>
-  <div class="summary-box"><strong>Total PnL</strong><br><span id="sum-pnl">$0.00 (<span id="sum-pnl-pct">0%</span>)$0.00 (<span id="sum-pnl-pct">0%</span>)</span></div>
-</div>
-<style>
-  .summary-box {
-    background: #f4f4f4;
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-size: 18px;
-    min-width: 150px;
-    text-align: center;
-    border: 1px solid #ccc; box-shadow: none;
-  }
-</style>
+  <h3>Summary</h3>
+  <p>Total Trades: <span id="totalTrades">0</span></p>
+  <p>Win / Loss: <span id="winLoss">0 / 0</span></p>
+  <p>Winrate: <span id="winrate">0%</span></p>
+  <p>Total PnL: <span id="totalPnl">$0.00 (0.00%)</span></p>
 
-    <h3></h3>
-    <p id="stats"></p>
-    <h3>Equity Curve</h3>
-    <canvas id="equityChart" width="400" height="200"></canvas>
-  </div>
+  <canvas id="equityChart" height="100" style="margin-top: 30px;"></canvas>
 
   <script>
     let trades = [];
-    let equity = [];
-    let equityChart = null;
-    let isDark = true;
+    let equityChart;
 
-    function format(n) {
-      return Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    function formatNumber(num) {
+      return num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function updateTagFilterOptions() {
+      const tags = [...new Set(trades.map(t => t.tag))];
+      const filter = document.getElementById("filterTag");
+      filter.innerHTML = '<option value="all">All</option>';
+      tags.forEach(tag => {
+        const opt = document.createElement("option");
+        opt.value = tag;
+        opt.textContent = tag;
+        filter.appendChild(opt);
+      });
     }
 
     function addTrade(result) {
-      const startBal = parseFloat(document.getElementById("startBal").value);
-      const riskPercent = parseFloat(document.getElementById("risk").value);
-      const rr = parseFloat(document.getElementById("rr").value);
-      const currentBal = equity.length ? equity[equity.length - 1] : startBal;
-      const riskAmount = currentBal * (riskPercent / 100);
+      const balance = parseFloat(document.getElementById("balanceInput").value);
+      const riskPercent = parseFloat(document.getElementById("riskInput").value);
+      const rr = parseFloat(document.getElementById("rrInput").value);
+      const tag = document.getElementById("tagInput").value.trim() || "Untagged";
+      const lastEquity = trades.length ? trades[trades.length - 1].equity : balance;
+      const riskAmount = (riskPercent / 100) * lastEquity;
       const pnl = result === "win" ? riskAmount * rr : -riskAmount;
-      const newEquity = currentBal + pnl;
+      const newEquity = lastEquity + pnl;
 
-      trades.push({ risk: riskPercent, rr, result, pnl, equity: newEquity });
-      equity.push(newEquity);
-      updateTable();
-      updateStats();
-      updateChart();
+      trades.push({ rr, risk: riskPercent, result, pnl, equity: newEquity, tag });
+      updateTagFilterOptions();
+      renderTable();
     }
 
-    function deleteLastTrade() {
-      trades.pop();
-      equity.pop();
-      updateTable();
-      updateStats();
-      updateChart();
-    }
+    function updateEquityChart(filteredTrades) {
+      const labels = filteredTrades.map((_, i) => i + 1);
+      const data = filteredTrades.map(t => t.equity);
+      const ctx = document.getElementById("equityChart").getContext("2d");
 
-    function resetAll() {
-      trades = [];
-      equity = [];
-      updateTable();
-      updateStats();
-      updateChart();
-    }
+      if (equityChart) equityChart.destroy();
 
-    function updateTable() {
-      const table = document.getElementById("tradeTable");
-      table.innerHTML = `<tr>
-        <th>#</th><th>Risk</th><th>RR</th><th>Result</th><th>PnL ($)</th><th>Equity ($)</th>
-      </tr>`;
-      trades.forEach((t, i) => {
-        const row = table.insertRow();
-        row.innerHTML = `<td>${trade.tag}</td>` + <td>${i+1}</td><td>${t.risk}%</td><td>${t.rr}</td><td>${t.result}</td><td>${format(t.pnl)}</td><td>${format(t.equity)}</td>`;
-      });
-    }
-
-    function updateStats() {
-      const startBal = parseFloat(document.getElementById("startBal").value);
-      const wins = trades.filter(t => t.result === "win");
-      const losses = trades.filter(t => t.result === "loss");
-      const winrate = trades.length ? (wins.length / trades.length * 100).toFixed(2) : 0;
-      const avgWin$ = wins.length ? (wins.reduce((a, b) => a + b.pnl, 0) / wins.length) : 0;
-      const avgLoss$ = losses.length ? (losses.reduce((a, b) => a + b.pnl, 0) / losses.length) : 0;
-      const expectancy = (wins.length && losses.length) ? ((winrate / 100) * avgWin$ + ((1 - (winrate / 100)) * avgLoss$)).toFixed(2) : "0.00";
-      const profitFactor = (Math.abs(avgLoss$) > 0) ? (avgWin$ * wins.length / Math.abs(avgLoss$ * losses.length)).toFixed(2) : "∞";
-
-      let maxDD = 0, peak = startBal;
-      for (let i = 0; i < equity.length; i++) {
-        if (equity[i] > peak) peak = equity[i];
-        const dd = (peak - equity[i]) / peak * 100;
-        if (dd > maxDD) maxDD = dd;
-      }
-
-      let maxConsecLosses = 0, maxConsecWins = 0, curLoss = 0, curWin = 0;
-      trades.forEach(t => {
-        if (t.result === "loss") {
-          curLoss++; curWin = 0;
-          maxConsecLosses = Math.max(maxConsecLosses, curLoss);
-        } else {
-          curWin++; curLoss = 0;
-          maxConsecWins = Math.max(maxConsecWins, curWin);
+      equityChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Equity Curve",
+            data: data,
+            fill: false,
+            borderColor: "rgb(75, 192, 192)",
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { display: true, title: { display: true, text: "Trade #" }},
+            y: { display: true, title: { display: true, text: "Equity ($)" }}
+          }
         }
       });
-
-      const finalEquity = equity.length ? equity[equity.length - 1] : startBal;
-      const totalPnLPercent = ((finalEquity - startBal) / startBal * 100).toFixed(2);
-
-      document.getElementById("stats").innerHTML =
-        `<strong>Wins:</strong> ${wins.length} &nbsp; <strong>Losses:</strong> ${losses.length}<br>` +
-        `<strong>Win Rate:</strong> ${winrate}% &nbsp; <strong>Avg Win:</strong> $${format(avgWin$)} &nbsp; <strong>Avg Loss:</strong> $${format(avgLoss$)}<br>` +
-        `<strong>Expectancy:</strong> $${format(expectancy)} &nbsp; <strong>Profit Factor:</strong> ${profitFactor}<br>` +
-        `<strong>Max DD:</strong> ${maxDD.toFixed(2)}% &nbsp; <strong>Max Consecutive Wins:</strong> ${maxConsecWins} &nbsp; <strong>Losses:</strong> ${maxConsecLosses}<br>` +
-        `<strong>Total PnL:</strong> ${totalPnLPercent}%`;
     }
 
-    function updateChart() {
-      if (!equityChart) {
-        const ctx = document.getElementById("equityChart").getContext("2d");
-        equityChart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: equity.map((_, i) => i + 1),
-            datasets: [{
-              label: "Equity ($)",
-              data: [...equity],
-              borderColor: "#00ffff",
-              borderWidth: 2,
-              tension: 0.3,
-              pointRadius: 2,
-              animation: { duration: 300, easing: 'easeOutCubic' },
-              pointRadius: 2,
-              fill: false
-            }]
-          },
-          options: {
-            responsive: true,
-            animation: false,
-            scales: {
-              x: { title: { display: true, text: "Trade #" } },
-              y: { title: { display: true, text: "Equity ($)" } }
-            }
-          }
-        });
-      } else {
-        equityChart.data.labels = equity.map((_, i) => i + 1);
-        equityChart.data.datasets[0].data = [...equity];
-        equityChart.update();
-      }
+    function renderTable() {
+      const tableBody = document.getElementById("tradeTableBody");
+      const selectedTag = document.getElementById("filterTag").value;
+      tableBody.innerHTML = "";
+      let wins = 0, losses = 0, totalPnL = 0;
+      let displayTrades = selectedTag === "all" ? trades : trades.filter(t => t.tag === selectedTag);
+
+      displayTrades.forEach((trade, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${trade.tag}</td>
+          <td>${trade.risk}</td>
+          <td>${trade.rr}</td>
+          <td>${trade.result}</td>
+          <td>$${formatNumber(trade.pnl)}</td>
+          <td>$${formatNumber(trade.equity)}</td>`;
+        tableBody.appendChild(row);
+        if (trade.result === "win") wins++;
+        if (trade.result === "loss") losses++;
+        totalPnL += trade.pnl;
+      });
+
+      const total = wins + losses;
+      const winrate = total > 0 ? (wins / total) * 100 : 0;
+      document.getElementById("totalTrades").textContent = total;
+      document.getElementById("winLoss").textContent = `${wins} / ${losses}`;
+      document.getElementById("winrate").textContent = `${winrate.toFixed(2)}%`;
+
+      const startBalance = parseFloat(document.getElementById("balanceInput").value);
+      const percentPnL = (totalPnL / startBalance) * 100;
+      document.getElementById("totalPnl").textContent = `$${formatNumber(totalPnL)} (${formatNumber(percentPnL)}%)`;
+
+      updateEquityChart(displayTrades);
     }
-
-    function saveToFile() {
-      const data = { trades, equity };
-      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "tadea_data.json";
-      a.click();
-    }
-
-    function loadFromFile() {
-      const fileInput = document.getElementById("loadFile");
-      const file = fileInput.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = JSON.parse(e.target.result);
-        trades = data.trades || [];
-        equity = data.equity || [];
-        updateTable();
-        updateStats();
-        updateChart();
-      };
-      reader.readAsText(file);
-    }
-
-    function toggleTheme() {
-      isDark = !isDark;
-      const style = document.getElementById("theme-style");
-      style.innerHTML = isDark ? darkTheme : lightTheme;
-    }
-
-    const darkTheme = `body{background:#111;color:#fff;display:flex;gap:20px;padding:20px;margin:0;font-family:sans-serif}
-.left,.right{flex:1;background:#222;padding:20px;border-radius:10px}
-.right{position:sticky;top:20px;align-self:flex-start}
-table{border-collapse:collapse;width:100%;margin-top:10px;color:#fff}
-th,td{border:1px solid #555;padding:6px;text-align:center}
-h1,h3{color:#0ff}
-input{margin:5px 5px 5px 0;padding:5px;border-radius:4px}
-button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px;background:#333;color:#0ff;font-weight:bold}
-button:hover{background:#0ff;color:#000}`;
-
-    const lightTheme = `body{background:#f0f0f0;color:#222;display:flex;gap:20px;padding:20px;margin:0;font-family:sans-serif}
-.left,.right{flex:1;background:#fff;padding:20px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,.1)}
-.right{position:sticky;top:20px;align-self:flex-start}
-table{border-collapse:collapse;width:100%;margin-top:10px;color:#222}
-th,td{border:1px solid #aaa;padding:6px;text-align:center}
-h1,h3{color:#0077cc}
-input{margin:5px 5px 5px 0;padding:5px;border:1px solid #ccc;border-radius:4px;background:#fff;color:#222}
-button{margin:5px 5px 5px 0;padding:5px;border:none;border-radius:4px;background:#0077cc;color:#fff;font-weight:bold}
-button:hover{background:#005fa3;color:#fff}`;
-
-    toggleTheme();
-  
-function recalculateTrades() {
-  let equity = startBal;
-  trades.forEach(t => {
-    const R = t.result === "win" ? t.rr : -1;
-    const riskAmt = equity * (t.risk / 100);
-    t.pnl = parseFloat((R * riskAmt).toFixed(2));
-    equity += t.pnl;
-    t.equity = parseFloat(equity.toFixed(2));
-  });
-}
-
-function loadFile(event) {
-  const reader = new FileReader();
-  reader.onload = function() {
-    try {
-      trades = JSON.parse(reader.result);
-      recalculateTrades();
-      updateStats();
-      renderTable();
-    } catch (e) {
-      alert("Invalid JSON file.");
-    }
-  };
-  reader.readAsText(event.target.files[0]);
-}
-
-
-window.addEventListener("load", () => {
-  const origUpdateStats = updateStats;
-  updateStats = function() {
-    origUpdateStats();
-
-    const winrate = document.querySelector("#stats").innerText.match(/Winrate.*?(\d+\.?\d*)%/);
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const eq = equity.length ? equity[equity.length - 1] : startBal;
-    const pnl = eq - startBal;
-    const pnlPct = ((pnl / startBal) * 100).toFixed(2);
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate ? winrate[1] + "%" : "0%";
-    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-
-
-window.addEventListener("load", () => {
-  const origUpdateStats = updateStats;
-  updateStats = function() {
-    origUpdateStats();
-
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
-
-    const eq = equity.length ? equity[equity.length - 1] : startBal;
-    const pnl = eq - startBal;
-    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate + "%";
-    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-
-
-window.addEventListener("load", () => {
-  const origUpdateStats = updateStats;
-  updateStats = function() {
-    origUpdateStats();
-
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
-
-    let eq = startBal;
-    equity.forEach(e => { eq = e; });
-    const pnl = eq - startBal;
-    const pnlPct = startBal > 0 ? ((pnl / startBal) * 100).toFixed(2) : "0.00";
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate + "%";
-    document.getElementById("sum-pnl").innerHTML = "$" + pnl.toFixed(2) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-
-</script>
-
-
-
-
-
-
-
-
-
-
-<script>
-window.addEventListener("load", () => {
-  const origUpdateStats = window.updateStats;
-  window.updateStats = function() {
-    origUpdateStats();
-
-    const total = trades.length;
-    const wins = trades.filter(t => t.result === 'win').length;
-    const losses = trades.filter(t => t.result === 'loss').length;
-    const winrate = total > 0 ? ((wins / total) * 100).toFixed(2) : "0.00";
-
-    // Pull current value from input field (if user has changed it)
-    const startBalInput = document.getElementById("startBal");
-    const safeStartBal = parseFloat(startBalInput ? startBalInput.value : startBal) || 0;
-    const lastEquity = equity.length ? (parseFloat(equity[equity.length - 1]) || safeStartBal) : safeStartBal;
-    const pnl = lastEquity - safeStartBal;
-    const pnlPct = safeStartBal > 0 ? ((pnl / safeStartBal) * 100).toFixed(2) : "0.00";
-
-    function formatNumber(n) {
-      return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    document.getElementById("sum-total").textContent = total;
-    document.getElementById("sum-winloss").textContent = wins + " / " + losses;
-    document.getElementById("sum-winrate").textContent = winrate + "%";
-    document.getElementById("sum-pnl").innerHTML = "$" + formatNumber(pnl) + " (<span id='sum-pnl-pct'>" + pnlPct + "%</span>)";
-  };
-});
-</script>
-
+  </script>
 </body>
 </html>
