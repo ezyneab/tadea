@@ -287,11 +287,22 @@ window.addEventListener("load", () => {
       const reader = new FileReader();
       reader.onload = function(e) {
         const data = JSON.parse(e.target.result);
-        trades = data.trades || [];
-        equity = data.equity || [];
-        updateTable();
-        updateStats();
-        updateChart();
+ 	trades = data.trades || [];
+    	    // Recalculate equity array for ALL trades using startBal
+   	     const startBal = parseFloat(document.getElementById("startBal").value) || 0;
+     	   let eq = startBal;
+       	 equity = [];
+       	 trades.forEach(t => {
+      	    const riskAmount = eq * (t.risk / 100);
+    	      const pnl = t.result === "win" ? riskAmount * t.rr : -riskAmount;
+    	      eq += pnl;
+    	      t.pnl = pnl;
+     	     t.equity = eq;
+      	    equity.push(eq);
+    	    });
+      	  updateTable();
+    	    updateStats();
+     	   updateChart();
       };
       reader.readAsText(file);
     }
